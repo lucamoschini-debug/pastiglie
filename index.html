@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e7c74">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Le mie pastiglie</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap">
+<style>
+/* Layout: una colonna centrata da "astuccio portapillole" — testata con anello di avanzamento,
+   striscia della settimana, poi le dosi del giorno divise per fascia oraria. */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --surface-2:#e8eeee; --line:#d5dfdf;
+  --fg:#15282a; --muted:#5a6f71; --accent:#0e7c74; --accent-ink:#ffffff; --accent-soft:#d7efec;
+  --ok:#1f8a4c; --ok-soft:#dcf2e4; --warn:#b4650b; --warn-soft:#fbead3; --bad:#b83a32; --bad-soft:#f8dedb;
+  --shadow:0 1px 2px rgba(20,40,42,.06),0 4px 16px rgba(20,40,42,.06);
+  --f-display:"Bricolage Grotesque",ui-rounded,"Segoe UI",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1a1b; --surface:#172426; --surface-2:#1f2f31; --line:#2c3e40;
+  --fg:#e5efef; --muted:#9ab0b1; --accent:#43c2b5; --accent-ink:#06201e; --accent-soft:#16393a;
+  --ok:#5fcf8b; --ok-soft:#173527; --warn:#f0a24a; --warn-soft:#3a2a14; --bad:#f07b72; --bad-soft:#3d1d1b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1a1b; --surface:#172426; --surface-2:#1f2f31; --line:#2c3e40;
+  --fg:#e5efef; --muted:#9ab0b1; --accent:#43c2b5; --accent-ink:#06201e; --accent-soft:#16393a;
+  --ok:#5fcf8b; --ok-soft:#173527; --warn:#f0a24a; --warn-soft:#3a2a14; --bad:#f07b72; --bad-soft:#3d1d1b;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:760px;margin:0 auto;padding-block:20px 64px;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
+
+/* Testata */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand .eyebrow{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.brand h1{font-size:clamp(1.6rem,4.5vw,2.2rem);font-weight:800}
+.tabs{display:flex;background:var(--surface-2);border-radius:999px;padding:4px;gap:2px}
+.tabs a{padding:8px 16px;border-radius:999px;text-decoration:none;color:var(--muted);font-weight:700}
+.tabs a[aria-current="page"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+
+.sync{font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.sync.on i{background:var(--ok)}
+
+.banner{background:var(--accent-soft);border-radius:14px;padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.banner p{margin:0;min-width:0;flex:1 1 260px}
+
+/* Riepilogo */
+.summary{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;background:var(--surface);border-radius:20px;padding:20px;box-shadow:var(--shadow)}
+.ring{position:relative;width:112px;height:112px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .lbl{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.ring .lbl b{font-family:var(--f-display);font-size:1.6rem}
+.ring .lbl span{font-size:.78rem;color:var(--muted)}
+.next{display:flex;flex-direction:column;gap:4px;min-width:0}
+.next .k{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.next .v{font-family:var(--f-display);font-size:clamp(1.25rem,3.5vw,1.6rem);font-weight:700}
+.next .s{color:var(--muted)}
+.next .alert{color:var(--bad);font-weight:700}
+@media (max-width:460px){.summary{grid-template-columns:1fr;justify-items:center;text-align:center}}
+
+/* Settimana */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 2px;border-radius:14px;border:2px solid transparent;background:var(--surface);min-width:0}
+.day .dn{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.day .dd{font-family:var(--f-display);font-weight:700;font-size:1.1rem}
+.day .dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.day .dot.full{background:var(--ok)} .day .dot.part{background:var(--warn)} .day .dot.none{background:var(--bad)}
+.day[aria-pressed="true"]{border-color:var(--accent)}
+.day.today .dd{color:var(--accent)}
+.weeknav{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.weeknav h2{font-size:1.15rem}
+.iconbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;display:inline-grid;place-items:center}
+.weeknav .ctrls{display:flex;gap:6px}
+.linkbtn{background:none;border:none;color:var(--accent);font-weight:700;padding:8px}
+
+/* Fasce e dosi */
+.slot{display:flex;flex-direction:column;gap:10px}
+.slot-h{display:flex;align-items:baseline;gap:10px}
+.slot-h h3{font-size:1.05rem}
+.slot-h span{color:var(--muted);font-size:.85rem}
+.dose{display:grid;grid-template-columns:64px 52px 1fr auto;align-items:center;gap:12px;background:var(--surface);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);border-left:6px solid var(--line)}
+.dose .t{font-family:var(--f-display);font-weight:700;font-size:1.2rem}
+.dose .info{min-width:0}
+.dose .nm{font-weight:700;font-size:1.05rem;overflow-wrap:anywhere}
+.dose .meta{color:var(--muted);font-size:.9rem;overflow-wrap:anywhere}
+.chip{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;margin-top:4px;margin-right:4px}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.late{background:var(--bad-soft);color:var(--bad)}
+.chip.next{background:var(--accent-soft);color:var(--accent)} .chip.wait{background:var(--surface-2);color:var(--muted)}
+.chip.food{background:var(--warn-soft);color:var(--warn)} .chip.low{background:var(--bad-soft);color:var(--bad)}
+.dose.st-ok{border-left-color:var(--ok)} .dose.st-late{border-left-color:var(--bad)} .dose.st-next{border-left-color:var(--accent)}
+.dose.st-ok .nm{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:var(--ok);opacity:.75}
+.take{border:2px solid var(--accent);background:var(--surface);color:var(--accent);font-weight:700;border-radius:12px;padding:10px 14px;min-width:96px}
+.take[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--accent-ink)}
+.take:disabled{opacity:.45;cursor:default}
+@media (max-width:520px){
+  .dose{grid-template-columns:44px 1fr auto;grid-template-areas:"pill info take" "pill time take"}
+  .dose .t{grid-area:time;font-size:1rem}.dose .pill{grid-area:pill}.dose .info{grid-area:info}.dose .take{grid-area:take;min-width:0}
+}
+.empty{background:var(--surface);border:2px dashed var(--line);border-radius:18px;padding:28px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center}
+
+/* Farmaci */
+.medlist{display:flex;flex-direction:column;gap:10px}
+.med{display:grid;grid-template-columns:52px 1fr auto;gap:14px;align-items:center;background:var(--surface);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+.med .info{min-width:0}
+.med .times{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.med .times span{background:var(--surface-2);border-radius:8px;padding:2px 8px;font-weight:700;font-size:.85rem}
+.stock{font-size:.88rem;color:var(--muted);margin-top:4px}
+.stock.low{color:var(--bad);font-weight:700}
+.btn{border:none;border-radius:12px;padding:11px 18px;font-weight:700;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--surface-2);color:var(--fg)}
+.btn.danger{background:var(--bad);color:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sectionhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.sectionhead h2{font-size:1.4rem}
+
+/* Modulo */
+dialog{border:none;border-radius:22px;padding:0;width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px);background:var(--surface);color:var(--fg);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(10,25,27,.45)}
+form.medform{display:flex;flex-direction:column;gap:16px;padding:22px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.field .lab{font-weight:700;font-size:.92rem}
+.field small{color:var(--muted)}
+.field input[type=text],.field input[type=number],.field input[type=date],.field input[type=time],.field select,.field textarea{
+  background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:460px){.grid2{grid-template-columns:1fr}}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.swatches label{position:relative}
+.swatches input{position:absolute;opacity:0;inset:0}
+.swatches span{display:block;width:34px;height:34px;border-radius:50%;border:3px solid var(--surface);box-shadow:0 0 0 1.5px var(--line)}
+.swatches input:checked+span{box-shadow:0 0 0 3px var(--fg)}
+.swatches input:focus-visible+span{outline:3px solid var(--accent);outline-offset:3px}
+.shapes{display:flex;gap:8px;flex-wrap:wrap}
+.shapes label{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 10px;border-radius:12px;border:1.5px solid var(--line);font-size:.8rem}
+.shapes input{position:absolute;opacity:0;inset:0}
+.shapes label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.daypick{display:flex;flex-wrap:wrap;gap:6px}
+.daypick label{position:relative}
+.daypick input{position:absolute;opacity:0;inset:0}
+.daypick span{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--surface-2);font-weight:700;font-size:.85rem}
+.daypick input:checked+span{background:var(--accent);color:var(--accent-ink)}
+.daypick input:focus-visible+span{outline:3px solid var(--accent);outline-offset:2px}
+.timelist{display:flex;flex-direction:column;gap:8px}
+.timelist .tr{display:flex;gap:8px;align-items:center}
+.timelist input{max-width:160px}
+.formfoot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px}
+.err{color:var(--bad);font-weight:700;margin:0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;z-index:20}
+.note{color:var(--muted);font-size:.85rem;text-align:center}
+@media (prefers-reduced-motion:no-preference){.ring circle.prog{transition:stroke-dashoffset .5s ease}.take{transition:background .15s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="eyebrow" id="todayLabel">Oggi</span>
+      <h1>Le mie pastiglie</h1>
+      <span class="sync" id="sync"><i></i><span>Salvato su questo dispositivo</span></span>
+    </div>
+    <nav class="tabs" aria-label="Sezioni">
+      <a href="#oggi" id="tab-oggi">Giornata</a>
+      <a href="#farmaci" id="tab-farmaci">Farmaci</a>
+    </nav>
+  </header>
+
+  <div class="banner" id="exampleBanner" hidden>
+    <p>Questi farmaci sono <b>esempi</b> per mostrarti come funziona. Modificali o parti da zero.</p>
+    <button class="btn ghost" id="clearExamples" type="button">Parti da zero</button>
+  </div>
+
+  <main id="viewToday">
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <section class="summary" aria-live="polite">
+        <div class="ring" id="ring"></div>
+        <div class="next" id="nextBox"></div>
+      </section>
+      <section style="display:flex;flex-direction:column;gap:10px">
+        <div class="weeknav">
+          <h2 id="weekTitle">Settimana</h2>
+          <div class="ctrls">
+            <button class="linkbtn" id="goToday" type="button">Oggi</button>
+            <button class="iconbtn" id="prevWeek" type="button" aria-label="Settimana precedente">‹</button>
+            <button class="iconbtn" id="nextWeek" type="button" aria-label="Settimana successiva">›</button>
+          </div>
+        </div>
+        <div class="week" id="week"></div>
+      </section>
+      <section id="doses" style="display:flex;flex-direction:column;gap:22px"></section>
+    </div>
+  </main>
+
+  <main id="viewMeds" hidden>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="sectionhead">
+        <h2>Farmaci e orari</h2>
+        <button class="btn" id="addMed" type="button">+ Aggiungi farmaco</button>
+      </div>
+      <div class="medlist" id="medlist"></div>
+      <p class="note">Questa app ti aiuta a ricordare cosa hai preso. Per dosi e orari segui sempre le indicazioni del medico o del farmacista.</p>
+    </div>
+  </main>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form class="medform" id="medform" novalidate>
+    <h2 id="dlgTitle">Nuovo farmaco</h2>
+    <div class="field">
+      <label for="f-name">Nome del farmaco</label>
+      <input type="text" id="f-name" autocomplete="off" placeholder="Es. Cardioaspirina" required>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="f-dose">Dose</label>
+        <input type="text" id="f-dose" autocomplete="off" placeholder="Es. 1 compressa da 100 mg">
+      </div>
+      <div class="field">
+        <label for="f-food">Come prenderla</label>
+        <select id="f-food">
+          <option value="">Nessuna indicazione</option>
+          <option value="pieno">A stomaco pieno</option>
+          <option value="vuoto">A stomaco vuoto</option>
+          <option value="acqua">Con un bicchiere d'acqua</option>
+          <option value="sciogliere">Da sciogliere in bocca</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lab">Orari</span>
+      <div class="timelist" id="f-times"></div>
+      <button type="button" class="linkbtn" id="addTime" style="align-self:flex-start;padding-left:0">+ Aggiungi orario</button>
+    </div>
+    <div class="field">
+      <span class="lab">Giorni</span>
+      <div class="daypick" id="f-days"></div>
+    </div>
+    <div class="field">
+      <span class="lab">Aspetto della pastiglia</span>
+      <div class="shapes" id="f-shapes"></div>
+      <div class="swatches" id="f-colors"></div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="f-stock">Pastiglie rimaste</label>
+        <input type="number" id="f-stock" min="0" step="1" inputmode="numeric" placeholder="Facoltativo">
+        <small>Scala da sola a ogni dose presa.</small>
+      </div>
+      <div class="field">
+        <label for="f-per">Pastiglie per dose</label>
+        <input type="number" id="f-per" min="0.5" step="0.5" value="1">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field">
+        <label for="f-start">Inizio terapia</label>
+        <input type="date" id="f-start">
+      </div>
+      <div class="field">
+        <label for="f-end">Fine terapia</label>
+        <input type="date" id="f-end">
+        <small>Lascia vuoto se continua.</small>
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-note">Note</label>
+      <textarea id="f-note" rows="2" placeholder="Es. non insieme al latte"></textarea>
+    </div>
+    <p class="err" id="formErr" hidden></p>
+    <div class="formfoot">
+      <button type="button" class="btn danger" id="delMed" hidden>Elimina</button>
+      <div class="row" style="margin-left:auto">
+        <button type="button" class="btn ghost" id="cancelMed">Annulla</button>
+        <button type="submit" class="btn">Salva</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+"use strict";
+const COLORS=["#f4f4f1","#f2c94c","#f28c38","#e2574c","#e889b5","#9b7fd1","#4f8fd9","#4cb7a5","#7cbf5a","#8a6a52"];
+const SHAPES={round:"Tonda",oval:"Ovale",capsule:"Capsula",half:"Bicolore"};
+const DAYN=["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+const DAYL=["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"];
+const MONTHS=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+const FOOD={pieno:"A stomaco pieno",vuoto:"A stomaco vuoto",acqua:"Con acqua",sciogliere:"Da sciogliere"};
+const SLOTS=[{k:"Mattina",from:0,to:12,r:"fino alle 12"},{k:"Pomeriggio",from:12,to:18,r:"12 – 18"},{k:"Sera",from:18,to:22,r:"18 – 22"},{k:"Notte",from:22,to:24,r:"dopo le 22"}];
+const LATE_MIN=30, LS_KEY="pastiglie.v1";
+
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parseYmd=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const mins=t=>{const[h,m]=t.split(":").map(Number);return h*60+m};
+const uid=()=>Math.random().toString(36).slice(2,10);
+const el=(tag,props,...kids)=>{const e=document.createElement(tag);if(props)for(const k in props){if(k==="class")e.className=props[k];else if(k==="text")e.textContent=props[k];else if(k.startsWith("on"))e.addEventListener(k.slice(2),props[k]);else e.setAttribute(k,props[k]);}for(const c of kids)if(c!=null)e.append(c);return e};
+
+/* ---------- Stato ---------- */
+function exampleState(){
+  const today=ymd(new Date());
+  return {example:true,meds:[
+    {id:"ex1",name:"Cardioaspirina",dose:"1 compressa da 100 mg",food:"pieno",times:["08:00"],days:[0,1,2,3,4,5,6],shape:"round",color:"#f4f4f1",stock:22,per:1,start:"",end:"",note:"Dopo colazione",example:true},
+    {id:"ex2",name:"Omeprazolo",dose:"1 capsula da 20 mg",food:"vuoto",times:["07:30"],days:[0,1,2,3,4,5,6],shape:"capsule",color:"#9b7fd1",stock:5,per:1,start:"",end:"",note:"30 minuti prima di mangiare",example:true},
+    {id:"ex3",name:"Metformina",dose:"1 compressa da 500 mg",food:"pieno",times:["13:00","20:00"],days:[0,1,2,3,4,5,6],shape:"oval",color:"#4f8fd9",stock:40,per:1,start:"",end:"",note:"",example:true},
+    {id:"ex4",name:"Vitamina D",dose:"10 gocce",food:"",times:["10:00"],days:[0],shape:"half",color:"#f2c94c",stock:null,per:1,start:"",end:"",note:"Solo la domenica",example:true}
+  ],log:{[today]:{"ex2|07:30":"07:35"}}};
+}
+let state=null;
+
+/* Persistenza: account (db) quando disponibile, altrimenti questo browser */
+let db=null, docRef=null, saveTimer=null, saving=false, dirty=false;
+function lsRead(){try{const s=localStorage.getItem(LS_KEY);return s?JSON.parse(s):null}catch(e){return null}}
+function lsWrite(s){try{localStorage.setItem(LS_KEY,JSON.stringify(s))}catch(e){}}
+function prune(s){const cut=ymd(addDays(new Date(),-120));for(const k of Object.keys(s.log||{}))if(k<cut)delete s.log[k];return s}
+function normalize(s){
+  if(!s||!Array.isArray(s.meds))return null;
+  s.log=s.log&&typeof s.log==="object"?s.log:{};
+  s.meds=s.meds.filter(m=>m&&typeof m.name==="string").map(m=>({
+    id:String(m.id||uid()),name:m.name,dose:String(m.dose||""),food:FOOD[m.food]?m.food:"",
+    times:(Array.isArray(m.times)?m.times:[]).filter(t=>/^\d\d:\d\d$/.test(t)).sort(),
+    days:(Array.isArray(m.days)?m.days:[]).map(Number).filter(d=>d>=0&&d<7),
+    shape:SHAPES[m.shape]?m.shape:"round",color:COLORS.includes(m.color)?m.color:COLORS[0],
+    stock:(typeof m.stock==="number"&&isFinite(m.stock))?m.stock:null,per:Number(m.per)>0?Number(m.per):1,
+    start:/^\d{4}-\d\d-\d\d$/.test(m.start||"")?m.start:"",end:/^\d{4}-\d\d-\d\d$/.test(m.end||"")?m.end:"",
+    note:String(m.note||""),example:!!m.example}));
+  s.example=!!s.example;return s;
+}
+function save(){
+  prune(state);lsWrite(state);dirty=true;
+  if(!docRef)return;
+  clearTimeout(saveTimer);saveTimer=setTimeout(flush,500);
+}
+async function flush(){
+  if(!docRef||saving)return;
+  saving=true;dirty=false;
+  try{await docRef.set(JSON.parse(JSON.stringify({data:state,updated:new Date().toISOString()})));setSync(true)}
+  catch(e){setSync(false,"Non salvato sull'account: resta su questo dispositivo");}
+  saving=false;if(dirty)flush();
+}
+function setSync(on,msg){const s=$("sync");s.classList.toggle("on",on);s.lastElementChild.textContent=msg||(on?"Salvato sul tuo account":"Salvato su questo dispositivo")}
+
+async function connect(){
+  if(!window.claude||!window.claude.use)return;
+  try{
+    const [d,u]=await Promise.all([claude.use("db"),claude.use("user")]);
+    if(!d||!u)return;
+    const id=await u.id();if(!id)return;
+    db=d;docRef=db.doc("data/users/"+id+"/pastiglie");
+    const timer=setTimeout(()=>setSync(false,"Account non raggiungibile: salvo qui"),10000);
+    let first=true;
+    docRef.onSnapshot(snap=>{
+      if(!snap.metadata.fromCache)clearTimeout(timer);
+      if(snap.metadata.hasPendingWrites)return;
+      if(snap.exists){
+        const remote=normalize((snap.data()||{}).data);
+        if(remote&&!dirty&&!saving){state=remote;lsWrite(state);render();}
+        if(!snap.metadata.fromCache)setSync(true);
+      }else if(first&&!snap.metadata.fromCache){
+        /* Primo accesso: porta sull'account quello che c'era su questo dispositivo */
+        if(!state.example)flush();setSync(true);
+      }
+      if(!snap.metadata.fromCache)first=false;
+    },()=>{clearTimeout(timer);setSync(false,"Account non raggiungibile: salvo qui")});
+  }catch(e){}
+}
+
+/* ---------- Calcoli ---------- */
+function activeOn(m,d){
+  const k=ymd(d);
+  if(m.start&&k<m.start)return false;
+  if(m.end&&k>m.end)return false;
+  return m.days.includes(d.getDay());
+}
+function dosesFor(d){
+  const out=[];
+  for(const m of state.meds)if(activeOn(m,d))for(const t of m.times)out.push({m,t,key:m.id+"|"+t});
+  return out.sort((a,b)=>mins(a.t)-mins(b.t)||a.m.name.localeCompare(b.m.name));
+}
+function takenAt(d,key){const l=state.log[ymd(d)];return l?l[key]:undefined}
+function dayStats(d){const ds=dosesFor(d);let t=0;for(const x of ds)if(takenAt(d,x.key))t++;return{total:ds.length,taken:t}}
+function nowMin(){const n=new Date();return n.getHours()*60+n.getMinutes()}
+function cmpDay(d){const a=ymd(d),b=ymd(new Date());return a<b?-1:a>b?1:0}
+function statusOf(d,x,nextKey){
+  if(takenAt(d,x.key))return"ok";
+  const c=cmpDay(d);
+  if(c<0)return"late";
+  if(c>0)return"wait";
+  if(mins(x.t)<nowMin()-LATE_MIN)return"late";
+  return x.key===nextKey?"next":"wait";
+}
+
+/* ---------- Pastiglia disegnata ---------- */
+function pillSVG(shape,color,size){
+  const ns="http://www.w3.org/2000/svg";
+  const s=document.createElementNS(ns,"svg");s.setAttribute("viewBox","0 0 52 52");s.setAttribute("width",size||52);s.setAttribute("height",size||52);s.setAttribute("aria-hidden","true");s.classList.add("pill");
+  const mk=(t,a)=>{const e=document.createElementNS(ns,t);for(const k in a)e.setAttribute(k,a[k]);s.append(e);return e};
+  const stroke="rgba(0,0,0,.22)";
+  if(shape==="round"){mk("circle",{cx:26,cy:26,r:19,fill:color,stroke,"stroke-width":1.5});mk("line",{x1:12,y1:26,x2:40,y2:26,stroke,"stroke-width":1.5});mk("ellipse",{cx:20,cy:18,rx:6,ry:3,fill:"rgba(255,255,255,.45)"})}
+  else if(shape==="oval"){mk("ellipse",{cx:26,cy:26,rx:22,ry:13,fill:color,stroke,"stroke-width":1.5,transform:"rotate(-30 26 26)"});mk("ellipse",{cx:19,cy:23,rx:7,ry:2.6,fill:"rgba(255,255,255,.45)",transform:"rotate(-30 26 26)"})}
+  else{
+    const g=document.createElementNS(ns,"g");g.setAttribute("transform","rotate(-40 26 26)");s.append(g);
+    const add=(t,a)=>{const e=document.createElementNS(ns,t);for(const k in a)e.setAttribute(k,a[k]);g.append(e)};
+    const other=shape==="half"?"#ffffff":color;
+    add("path",{d:"M26 15 H15 a11 11 0 0 0 0 22 H26 Z",fill:color,stroke,"stroke-width":1.5,transform:"translate(-2 0)"});
+    add("path",{d:"M26 15 H37 a11 11 0 0 1 0 22 H26 Z",fill:shape==="half"?other:shade(color),stroke,"stroke-width":1.5,transform:"translate(2 0)"});
+    add("rect",{x:9,y:19,width:12,height:3,rx:1.5,fill:"rgba(255,255,255,.45)"});
+  }
+  return s;
+}
+function shade(hex){const n=parseInt(hex.slice(1),16);const f=v=>Math.max(0,Math.round(v*.78));return"#"+[(n>>16)&255,(n>>8)&255,n&255].map(f).map(v=>v.toString(16).padStart(2,"0")).join("")}
+
+/* ---------- Vista Giornata ---------- */
+let selected=new Date();selected.setHours(0,0,0,0);
+function weekStart(d){const x=new Date(d);const wd=(x.getDay()+6)%7;x.setDate(x.getDate()-wd);x.setHours(0,0,0,0);return x}
+
+function renderToday(){
+  const now=new Date();
+  $("todayLabel").textContent=DAYL[now.getDay()]+" "+now.getDate()+" "+MONTHS[now.getMonth()];
+  const ws=weekStart(selected);
+  const we=addDays(ws,6);
+  $("weekTitle").textContent=ws.getMonth()===we.getMonth()?(ws.getDate()+" – "+we.getDate()+" "+MONTHS[we.getMonth()]):(ws.getDate()+" "+MONTHS[ws.getMonth()].slice(0,3)+" – "+we.getDate()+" "+MONTHS[we.getMonth()].slice(0,3));
+  const wk=$("week");wk.replaceChildren();
+  for(let i=0;i<7;i++){
+    const d=addDays(ws,i),st=dayStats(d),c=cmpDay(d);
+    let cls="dot";
+    if(st.total&&c<=0){cls+=st.taken===st.total?" full":st.taken>0?" part":(c<0?" none":"");}
+    const b=el("button",{class:"day"+(c===0?" today":""),type:"button","aria-pressed":String(ymd(d)===ymd(selected)),"aria-label":DAYL[d.getDay()]+" "+d.getDate()+": "+st.taken+" di "+st.total+" dosi",onclick:()=>{selected=d;renderToday()}},
+      el("span",{class:"dn",text:DAYN[d.getDay()]}),el("span",{class:"dd num",text:String(d.getDate())}),el("span",{class:cls}));
+    wk.append(b);
+  }
+
+  const ds=dosesFor(selected),st=dayStats(selected),c=cmpDay(selected);
+  /* anello */
+  const R=48,C=2*Math.PI*R,p=st.total?st.taken/st.total:0;
+  $("ring").innerHTML=`<svg viewBox="0 0 112 112"><circle cx="56" cy="56" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="10"/><circle class="prog" cx="56" cy="56" r="${R}" fill="none" stroke="${p===1?"var(--ok)":"var(--accent)"}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}"/></svg><div class="lbl"><b class="num">${st.taken}/${st.total}</b><span>dosi prese</span></div>`;
+
+  /* prossima dose */
+  const nb=$("nextBox");nb.replaceChildren();
+  const late=c===0?ds.filter(x=>statusOf(selected,x)==="late"):[];
+  const nextList=c===0?ds.filter(x=>!takenAt(selected,x.key)&&mins(x.t)>=nowMin()-LATE_MIN):[];
+  const nextKey=nextList[0]&&nextList[0].key;
+  if(c!==0){
+    const lbl=c<0?"Giorno passato":"Giorno in programma";
+    nb.append(el("span",{class:"k",text:lbl}),el("span",{class:"v",text:DAYL[selected.getDay()]+" "+selected.getDate()+" "+MONTHS[selected.getMonth()]}),
+      el("span",{class:"s",text:c<0?(st.total?(st.taken===st.total?"Tutte le dosi segnate come prese.":(st.total-st.taken)+" dosi non segnate."):"Nessuna dose prevista."):(st.total+" dosi previste.")}));
+  }else if(!st.total){
+    nb.append(el("span",{class:"k",text:"Oggi"}),el("span",{class:"v",text:"Nessuna dose prevista"}),el("span",{class:"s",text:"Aggiungi un farmaco nella sezione Farmaci."}));
+  }else if(st.taken===st.total){
+    nb.append(el("span",{class:"k",text:"Oggi"}),el("span",{class:"v",text:"Tutto preso ✓"}),el("span",{class:"s",text:"Hai completato le dosi di oggi."}));
+  }else{
+    const nx=nextList[0];
+    if(nx){
+      const same=nextList.filter(x=>x.t===nx.t);
+      const diff=mins(nx.t)-nowMin();
+      const when=diff<=0?"adesso":diff<60?"tra "+diff+" min":"tra "+Math.floor(diff/60)+" h "+pad(diff%60)+" min";
+      nb.append(el("span",{class:"k",text:"Prossima dose · "+when}),el("span",{class:"v num",text:nx.t+" · "+same.map(x=>x.m.name).join(", ")}),el("span",{class:"s",text:same.map(x=>x.m.dose).filter(Boolean).join(" · ")}));
+    }else nb.append(el("span",{class:"k",text:"Oggi"}),el("span",{class:"v",text:"Nessun'altra dose in programma"}));
+    if(late.length)nb.append(el("span",{class:"alert",text:late.length===1?"1 dose in ritardo: "+late[0].m.name+" delle "+late[0].t:late.length+" dosi in ritardo"}));
+  }
+
+  /* elenco dosi */
+  const box=$("doses");box.replaceChildren();
+  if(!state.meds.length){
+    box.append(el("div",{class:"empty"},el("strong",{text:"Nessun farmaco ancora"}),el("span",{text:"Aggiungi il primo farmaco con i suoi orari: comparirà qui, diviso per mattina, pomeriggio e sera."}),el("button",{class:"btn",type:"button",onclick:()=>openForm()},"+ Aggiungi farmaco")));
+    return;
+  }
+  if(!ds.length){box.append(el("div",{class:"empty"},el("strong",{text:"Nessuna dose in questo giorno"})));return}
+  for(const sl of SLOTS){
+    const items=ds.filter(x=>{const h=Math.floor(mins(x.t)/60);return h>=sl.from&&h<sl.to});
+    if(!items.length)continue;
+    const sec=el("section",{class:"slot"},el("div",{class:"slot-h"},el("h3",{text:sl.k}),el("span",{text:sl.r})));
+    for(const x of items)sec.append(doseRow(x,statusOf(selected,x,nextKey),c));
+    box.append(sec);
+  }
+}
+function doseRow(x,st,c){
+  const ta=takenAt(selected,x.key);
+  const chips=[];
+  if(st==="ok")chips.push(el("span",{class:"chip ok",text:"Presa alle "+ta}));
+  else if(st==="late")chips.push(el("span",{class:"chip late",text:c<0?"Non segnata":"In ritardo"}));
+  else if(st==="next")chips.push(el("span",{class:"chip next",text:"Prossima"}));
+  else if(c>0)chips.push(el("span",{class:"chip wait",text:"Programmata"}));
+  if(x.m.food)chips.push(el("span",{class:"chip food",text:FOOD[x.m.food]}));
+  if(x.m.stock!=null&&x.m.stock<=lowAt(x.m))chips.push(el("span",{class:"chip low",text:x.m.stock<=0?"Scorte finite":"Scorte basse: "+x.m.stock}));
+  const info=el("div",{class:"info"},el("div",{class:"nm",text:x.m.name}),el("div",{class:"meta",text:[x.m.dose,x.m.note].filter(Boolean).join(" · ")}),el("div",null,...chips));
+  const btn=el("button",{class:"take",type:"button","aria-pressed":String(!!ta),"aria-label":(ta?"Annulla: ":"Segna come presa: ")+x.m.name+" delle "+x.t,onclick:()=>toggle(x)},ta?"✓ Presa":"Prendi");
+  if(c>0)btn.disabled=true;
+  return el("article",{class:"dose st-"+st},el("span",{class:"t num",text:x.t}),pillSVG(x.m.shape,x.m.color,48),info,btn);
+}
+function lowAt(m){const perDay=m.times.length*m.per*(m.days.length/7||1);return Math.max(1,Math.ceil(perDay*5))}
+function toggle(x){
+  const k=ymd(selected);state.log[k]=state.log[k]||{};
+  const m=state.meds.find(z=>z.id===x.m.id);
+  if(state.log[k][x.key]){delete state.log[k][x.key];if(m&&m.stock!=null)m.stock=+(m.stock+m.per).toFixed(2);toast("Dose annullata")}
+  else{const n=new Date();state.log[k][x.key]=pad(n.getHours())+":"+pad(n.getMinutes());if(m&&m.stock!=null)m.stock=Math.max(0,+(m.stock-m.per).toFixed(2));toast("Segnata: "+x.m.name)}
+  save();render();
+}
+
+/* ---------- Vista Farmaci ---------- */
+function renderMeds(){
+  const list=$("medlist");list.replaceChildren();
+  if(!state.meds.length){list.append(el("div",{class:"empty"},el("strong",{text:"Nessun farmaco"}),el("span",{text:"Premi \u201cAggiungi farmaco\u201d per inserire nome, dose e orari."})));return}
+  const sorted=[...state.meds].sort((a,b)=>(mins(a.times[0]||"99:99")-mins(b.times[0]||"99:99"))||a.name.localeCompare(b.name));
+  for(const m of sorted){
+    const days=m.days.length===7?"Tutti i giorni":m.days.length?[1,2,3,4,5,6,0].filter(d=>m.days.includes(d)).map(d=>DAYN[d]).join(", "):"Nessun giorno";
+    const range=[m.start&&"dal "+fmt(m.start),m.end&&"fino al "+fmt(m.end)].filter(Boolean).join(" ");
+    const info=el("div",{class:"info"},
+      el("div",{class:"nm",style:"font-weight:700;font-size:1.05rem",text:m.name}),
+      el("div",{class:"meta",style:"color:var(--muted);font-size:.9rem",text:[m.dose,FOOD[m.food],days,range].filter(Boolean).join(" · ")}),
+      el("div",{class:"times"},...m.times.map(t=>el("span",{class:"num",text:t}))));
+    if(m.stock!=null){const low=m.stock<=lowAt(m);const perDay=m.times.length*m.per*(m.days.length/7);const left=perDay?Math.floor(m.stock/perDay):null;
+      info.append(el("div",{class:"stock"+(low?" low":""),text:"Rimaste: "+m.stock+(left!=null?" · circa "+left+" giorni":"")+(low?" · da ricomprare":"")}))}
+    list.append(el("article",{class:"med"},pillSVG(m.shape,m.color,52),info,el("button",{class:"btn ghost",type:"button","aria-label":"Modifica "+m.name,onclick:()=>openForm(m)},"Modifica")));
+  }
+}
+function fmt(s){const d=parseYmd(s);return d.getDate()+" "+MONTHS[d.getMonth()].slice(0,3)}
+
+/* ---------- Modulo ---------- */
+let editing=null,confirmDel=false;
+function buildFormStatic(){
+  const sh=$("f-shapes");
+  for(const k in SHAPES){const inp=el("input",{type:"radio",name:"shape",value:k,"aria-label":SHAPES[k]});const lab=el("label",null,inp,el("span",{id:"shp-"+k}),el("span",{text:SHAPES[k]}));sh.append(lab)}
+  const sw=$("f-colors");
+  COLORS.forEach((c,i)=>{const inp=el("input",{type:"radio",name:"color",value:c,id:"col-"+i,"aria-label":"Colore "+(i+1)});inp.addEventListener("change",paintShapes);const sp=el("span");sp.style.background=c;sw.append(el("label",null,inp,sp))});
+  const dp=$("f-days");
+  [1,2,3,4,5,6,0].forEach(d=>dp.append(el("label",null,el("input",{type:"checkbox",value:String(d),id:"day-"+d,"aria-label":DAYL[d]}),el("span",{text:DAYN[d]}))));
+}
+function paintShapes(){
+  const c=(document.querySelector('input[name=color]:checked')||{}).value||COLORS[0];
+  for(const k in SHAPES){const holder=$("shp-"+k);holder.replaceChildren(pillSVG(k,c,40))}
+}
+function timeRow(v){
+  const inp=el("input",{type:"time",value:v||"08:00","aria-label":"Orario"});
+  const row=el("div",{class:"tr"},inp,el("button",{type:"button",class:"iconbtn","aria-label":"Rimuovi orario",onclick:()=>{if($("f-times").children.length>1)row.remove()}},"×"));
+  return row;
+}
+function openForm(m){
+  editing=m||null;confirmDel=false;
+  $("dlgTitle").textContent=m?"Modifica farmaco":"Nuovo farmaco";
+  $("f-name").value=m?m.name:"";$("f-dose").value=m?m.dose:"";$("f-food").value=m?m.food:"";
+  $("f-stock").value=m&&m.stock!=null?m.stock:"";$("f-per").value=m?m.per:1;
+  $("f-start").value=m?m.start:"";$("f-end").value=m?m.end:"";$("f-note").value=m?m.note:"";
+  const tl=$("f-times");tl.replaceChildren();(m&&m.times.length?m.times:["08:00"]).forEach(t=>tl.append(timeRow(t)));
+  const days=m?m.days:[0,1,2,3,4,5,6];
+  document.querySelectorAll("#f-days input").forEach(i=>i.checked=days.includes(Number(i.value)));
+  const shape=m?m.shape:"round",color=m?m.color:COLORS[0];
+  document.querySelectorAll("input[name=shape]").forEach(i=>i.checked=i.value===shape);
+  document.querySelectorAll("input[name=color]").forEach(i=>i.checked=i.value===color);
+  paintShapes();
+  $("delMed").hidden=!m;$("delMed").textContent="Elimina";
+  $("formErr").hidden=true;
+  $("dlg").showModal();$("f-name").focus();
+}
+function submitForm(e){
+  e.preventDefault();
+  const name=$("f-name").value.trim();
+  const times=[...new Set([...$("f-times").querySelectorAll("input")].map(i=>i.value).filter(v=>/^\d\d:\d\d$/.test(v)))].sort();
+  const days=[...document.querySelectorAll("#f-days input:checked")].map(i=>Number(i.value));
+  const err=!name?"Scrivi il nome del farmaco.":!times.length?"Aggiungi almeno un orario.":!days.length?"Scegli almeno un giorno.":($("f-start").value&&$("f-end").value&&$("f-end").value<$("f-start").value)?"La fine terapia è prima dell'inizio.":"";
+  if(err){$("formErr").textContent=err;$("formErr").hidden=false;return}
+  const stockV=$("f-stock").value.trim();
+  const data={name,dose:$("f-dose").value.trim(),food:$("f-food").value,times,days,
+    shape:(document.querySelector("input[name=shape]:checked")||{}).value||"round",
+    color:(document.querySelector("input[name=color]:checked")||{}).value||COLORS[0],
+    stock:stockV===""?null:Math.max(0,Number(stockV)),per:Math.max(.5,Number($("f-per").value)||1),
+    start:$("f-start").value,end:$("f-end").value,note:$("f-note").value.trim()};
+  if(editing){Object.assign(state.meds.find(z=>z.id===editing.id),data,{example:false})}
+  else state.meds.push(Object.assign({id:uid(),example:false},data));
+  $("dlg").close();save();render();toast(editing?"Modifiche salvate":"Farmaco aggiunto");
+}
+function deleteMed(){
+  if(!editing)return;
+  if(!confirmDel){confirmDel=true;$("delMed").textContent="Conferma eliminazione";return}
+  state.meds=state.meds.filter(z=>z.id!==editing.id);
+  $("dlg").close();save();render();toast("Farmaco eliminato");
+}
+
+/* ---------- Generale ---------- */
+let toastT;
+function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,1800)}
+function route(){
+  const v=location.hash==="#farmaci"?"farmaci":"oggi";
+  $("viewToday").hidden=v!=="oggi";$("viewMeds").hidden=v!=="farmaci";
+  $("tab-oggi").setAttribute("aria-current",v==="oggi"?"page":"false");
+  $("tab-farmaci").setAttribute("aria-current",v==="farmaci"?"page":"false");
+}
+function render(){
+  state.example=state.meds.some(m=>m.example);
+  $("exampleBanner").hidden=!state.example;
+  renderToday();renderMeds();route();
+}
+
+state=normalize(lsRead())||exampleState();
+buildFormStatic();
+$("medform").addEventListener("submit",submitForm);
+$("addTime").addEventListener("click",()=>{const l=$("f-times").lastElementChild;const last=l?l.querySelector("input").value:"08:00";const h=(Number(last.slice(0,2))+4)%24;$("f-times").append(timeRow(pad(h)+last.slice(2)))});
+$("cancelMed").addEventListener("click",()=>$("dlg").close());
+$("delMed").addEventListener("click",deleteMed);
+$("addMed").addEventListener("click",()=>openForm());
+$("clearExamples").addEventListener("click",()=>{state.meds=state.meds.filter(m=>!m.example);state.log={};save();render();toast("Pronto: aggiungi i tuoi farmaci");location.hash="#farmaci"});
+$("prevWeek").addEventListener("click",()=>{selected=addDays(selected,-7);renderToday()});
+$("nextWeek").addEventListener("click",()=>{selected=addDays(selected,7);renderToday()});
+$("goToday").addEventListener("click",()=>{selected=new Date();selected.setHours(0,0,0,0);renderToday()});
+window.addEventListener("hashchange",route);
+setInterval(()=>{if($("dlg").open)return;renderToday()},60000);
+render();
+connect();
+})();
+</script>
+
+</body>
+</html>
