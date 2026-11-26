@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0e7c74">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pastiglie">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Le mie pastiglie</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -168,6 +175,14 @@ form.medform{display:flex;flex-direction:column;gap:16px;padding:22px}
 .login .msg{color:var(--fg);background:var(--accent-soft);border-radius:12px;padding:12px}
 .login .msg.err{background:var(--bad-soft);color:var(--bad)}
 .account{display:flex;gap:6px;align-items:center;font-size:.82rem;color:var(--muted);flex-wrap:wrap}
+.seg{display:flex;background:var(--surface-2);border-radius:999px;padding:4px;gap:2px;align-self:flex-start}
+.seg button{border:none;background:none;border-radius:999px;padding:8px 16px;font-weight:700;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.pw{display:flex;gap:6px}
+.pw input{flex:1;min-width:0}
+.pw button{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:0 12px;font-weight:700;font-size:.85rem;color:var(--muted)}
+.install{background:var(--surface);border:1.5px dashed var(--accent);border-radius:14px;padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.install p{margin:0;flex:1 1 240px;min-width:0}
 .account button{background:none;border:none;color:var(--accent);font-weight:700;padding:2px 4px;font-size:.82rem}
 @media (prefers-reduced-motion:no-preference){.ring circle.prog{transition:stroke-dashoffset .5s ease}.take{transition:background .15s}}
 </style>
@@ -193,15 +208,44 @@ form.medform{display:flex;flex-direction:column;gap:16px;padding:22px}
     <button class="btn ghost" id="clearExamples" type="button">Parti da zero</button>
   </div>
 
+  <div class="install" id="installHint" hidden>
+    <p><b>Installa l'app sul tuo iPhone:</b> tocca <b>Condividi</b> (il quadrato con la freccia) e poi <b>Aggiungi alla schermata Home</b>.</p>
+    <button class="btn ghost" type="button" id="installClose">Ho capito</button>
+  </div>
+
   <section class="login" id="viewLogin" hidden>
-    <h2>Accedi</h2>
-    <p>Scrivi la tua email: ti mandiamo un link per entrare, senza password. Ognuno vede solo i propri farmaci.</p>
-    <form id="loginForm" novalidate>
-      <label for="l-email" style="font-weight:700">Email</label>
-      <input type="email" id="l-email" autocomplete="email" inputmode="email" placeholder="nome@esempio.it" required>
-      <button class="btn" type="submit" id="l-send">Inviami il link</button>
+    <div class="seg" role="group" aria-label="Accesso o registrazione">
+      <button type="button" id="mode-login" aria-pressed="true">Accedi</button>
+      <button type="button" id="mode-signup" aria-pressed="false">Registrati</button>
+    </div>
+    <h2 id="authTitle">Accedi</h2>
+    <p id="authIntro">Entra con email e password. Ognuno vede solo i propri farmaci.</p>
+    <form id="authForm" novalidate>
+      <label for="a-email" style="font-weight:700">Email</label>
+      <input type="email" id="a-email" autocomplete="username" inputmode="email" placeholder="nome@esempio.it" required>
+      <label for="a-pass" style="font-weight:700">Password</label>
+      <div class="pw"><input type="password" id="a-pass" autocomplete="current-password" required><button type="button" id="a-show" aria-label="Mostra la password">Mostra</button></div>
+      <div id="a-pass2-wrap" hidden style="display:flex;flex-direction:column;gap:10px">
+        <label for="a-pass2" style="font-weight:700">Ripeti la password</label>
+        <input type="password" id="a-pass2" autocomplete="new-password">
+        <small style="color:var(--muted)">Almeno 8 caratteri.</small>
+      </div>
+      <button class="btn" type="submit" id="a-submit">Accedi</button>
     </form>
+    <button type="button" class="linkbtn" id="forgot" style="align-self:flex-start;padding-left:0">Password dimenticata?</button>
     <p class="msg" id="loginMsg" hidden></p>
+  </section>
+
+  <section class="login" id="viewReset" hidden>
+    <h2>Nuova password</h2>
+    <p>Scegli la nuova password per il tuo account.</p>
+    <form id="resetForm" novalidate>
+      <label for="r-pass" style="font-weight:700">Nuova password</label>
+      <input type="password" id="r-pass" autocomplete="new-password" required>
+      <small style="color:var(--muted)">Almeno 8 caratteri.</small>
+      <button class="btn" type="submit" id="r-submit">Salva la password</button>
+    </form>
+    <p class="msg" id="resetMsg" hidden></p>
   </section>
 
   <main id="viewToday" hidden>
@@ -368,44 +412,136 @@ function normalize(s){
 function setSync(on,msg){const s=$("sync");s.classList.toggle("on",on);s.lastElementChild.textContent=msg||(on?"Salvato sul tuo account":"Non collegato")}
 function toRow(m){return{id:m.id,nome:m.name,dose:m.dose,cibo:m.food,orari:m.times,giorni:m.days,forma:m.shape,colore:m.color,scorte:m.stock,per_dose:m.per,inizio:m.start||null,fine:m.end||null,note:m.note,aggiornato:new Date().toISOString()}}
 function fromRow(r){return{id:r.id,name:r.nome,dose:r.dose,food:r.cibo,times:r.orari||[],days:r.giorni||[],shape:r.forma,color:r.colore,stock:r.scorte==null?null:Number(r.scorte),per:Number(r.per_dose),start:r.inizio||"",end:r.fine||"",note:r.note}}
-let loading=false;
+/* Copia sul telefono + coda di modifiche da inviare al database */
+const ck=()=>"pastiglie.cache."+session.user.id, qk=()=>"pastiglie.queue."+session.user.id;
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+let queue=[], flushing=false, loading=false;
+function cacheState(){if(session)lsSet(ck(),{meds:state.meds,log:state.log})}
+function showPending(){
+  if(queue.length)setSync(false,(navigator.onLine?"Sincronizzo ":"Offline: ")+queue.length+(queue.length===1?" modifica da inviare":" modifiche da inviare"));
+}
+function enqueue(op){queue.push(op);lsSet(qk(),queue);cacheState();showPending();flush()}
+function opQuery(op){
+  switch(op.t){
+    case "med": return sb.from("farmaci").upsert(op.row);
+    case "delMed": return sb.from("farmaci").delete().eq("id",op.id);
+    case "take": return sb.from("assunzioni").upsert({farmaco_id:op.fid,giorno:op.giorno,orario:op.orario,presa_alle:op.at},{onConflict:"farmaco_id,giorno,orario"});
+    case "untake": return sb.from("assunzioni").delete().match({farmaco_id:op.fid,giorno:op.giorno,orario:op.orario});
+    case "stock": return sb.from("farmaci").update({scorte:op.v}).eq("id",op.id);
+  }
+}
+async function flush(){
+  if(!session||flushing)return;
+  if(!navigator.onLine){showPending();return}
+  flushing=true;let dropped=0,offline=false;
+  while(queue.length){
+    const op=queue[0];let res;
+    try{res=await opQuery(op)}catch(e){res={error:e,status:0}}
+    if(res&&res.error){
+      if(!res.status||res.status>=500||res.status===401){offline=true;break}  /* rete o sessione: riprova dopo */
+      dropped++;                                                              /* rifiutata dal database: scarta */
+    }
+    queue.shift();lsSet(qk(),queue);
+  }
+  flushing=false;
+  if(dropped)toast(dropped===1?"Una modifica è stata rifiutata dal server":dropped+" modifiche rifiutate dal server");
+  if(offline){showPending();return}
+  await loadAll();
+}
 async function loadAll(){
-  if(!session||loading)return;loading=true;
-  setSync(false,"Caricamento…");
+  if(!session||loading)return;
+  if(queue.length){flush();return}
+  loading=true;
   try{
     const from=ymd(addDays(new Date(),-120));
     const [f,a]=await Promise.all([
       sb.from("farmaci").select("*").order("creato"),
       sb.from("assunzioni").select("farmaco_id,giorno,orario,presa_alle").gte("giorno",from)]);
     if(f.error||a.error)throw f.error||a.error;
-    const log={};
-    for(const r of a.data)(log[r.giorno]=log[r.giorno]||{})[r.farmaco_id+"|"+r.orario]=r.presa_alle;
-    state=normalize({meds:f.data.map(fromRow),log});
-    setSync(true);
-  }catch(e){setSync(false,"Dati non caricati: controlla la connessione");toast("Non riesco a caricare i dati")}
+    if(!queue.length){
+      const log={};
+      for(const r of a.data)(log[r.giorno]=log[r.giorno]||{})[r.farmaco_id+"|"+r.orario]=r.presa_alle;
+      state=normalize({meds:f.data.map(fromRow),log});
+      cacheState();setSync(true);
+    }
+  }catch(e){setSync(false,navigator.onLine?"Server non raggiungibile: uso la copia sul telefono":"Offline: uso la copia sul telefono")}
   loading=false;render();
 }
-/* Esegue una scrittura; se fallisce avvisa e ricarica i dati veri dal server */
-async function run(q){
-  try{const{error}=await q;if(error)throw error;setSync(true);return true}
-  catch(e){toast("Modifica non salvata. Riprova.");setSync(false,"Ultima modifica non salvata");await loadAll();return false}
+function startSession(){
+  queue=lsGet(qk(),[]);
+  const c=normalize(lsGet(ck(),null));
+  state=c||{meds:[],log:{},example:false};
+  render();showPending();
+  flush();if(!queue.length)loadAll();
 }
 function showAuth(){
-  const inn=!!session;
-  $("viewLogin").hidden=inn;$("tabs").hidden=!inn;$("account").hidden=!inn;
+  const inn=!!session&&!recovering;
+  $("viewLogin").hidden=inn||recovering;$("viewReset").hidden=!recovering;
+  $("tabs").hidden=!inn;$("account").hidden=!inn;
   if(inn)$("accEmail").textContent=session.user.email||"";
   else{$("viewToday").hidden=true;$("viewMeds").hidden=true;$("exampleBanner").hidden=true;setSync(false,"Non collegato")}
 }
-async function sendLink(e){
+let authMode="login", recovering=false;
+function setMode(m){
+  authMode=m;const su=m==="signup";
+  $("mode-login").setAttribute("aria-pressed",String(!su));$("mode-signup").setAttribute("aria-pressed",String(su));
+  $("authTitle").textContent=su?"Crea il tuo account":"Accedi";
+  $("authIntro").textContent=su?"Registrati con email e password. Ti mandiamo un'email da confermare una sola volta.":"Entra con email e password. Ognuno vede solo i propri farmaci.";
+  $("a-pass2-wrap").hidden=!su;$("a-submit").textContent=su?"Crea account":"Accedi";
+  $("a-pass").setAttribute("autocomplete",su?"new-password":"current-password");
+  $("forgot").hidden=su;$("loginMsg").hidden=true;
+}
+function authMsg(id,text,err){const m=$(id);m.className="msg"+(err?" err":"");m.textContent=text;m.hidden=false}
+function itError(e){
+  const t=(e&&e.message)||"";
+  if(e&&e.status===429||/rate limit/i.test(t))return"Troppi tentativi: aspetta qualche minuto e riprova.";
+  if(/Invalid login credentials/i.test(t))return"Email o password non corretti.";
+  if(/Email not confirmed/i.test(t))return"Conferma prima la tua email: apri il messaggio che ti abbiamo mandato.";
+  if(/already registered|already been registered/i.test(t))return"Esiste già un account con questa email. Usa “Accedi”.";
+  if(/Password should be/i.test(t))return"La password è troppo debole: usa almeno 8 caratteri.";
+  if(/fetch|network/i.test(t))return"Nessuna connessione. Riprova quando sei online.";
+  return"Qualcosa non ha funzionato: "+t;
+}
+const okEmail=e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+const redirectTo=()=>location.origin+location.pathname;
+async function submitAuth(e){
   e.preventDefault();
-  const email=$("l-email").value.trim(),msg=$("loginMsg");
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.className="msg err";msg.textContent="Controlla l'indirizzo email.";msg.hidden=false;return}
-  $("l-send").disabled=true;
-  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
-  $("l-send").disabled=false;
-  if(error){msg.className="msg err";msg.textContent=error.status===429?"Troppe richieste: aspetta qualche minuto e riprova.":"Invio non riuscito: "+error.message;}
-  else{msg.className="msg";msg.textContent="Fatto! Apri l'email che ti abbiamo mandato a "+email+" e tocca il link per entrare. Controlla anche lo spam.";}
-  msg.hidden=false;
+  const email=$("a-email").value.trim(),pass=$("a-pass").value;
+  if(!okEmail(email))return authMsg("loginMsg","Controlla l'indirizzo email.",true);
+  if(authMode==="signup"){
+    if(pass.length<8)return authMsg("loginMsg","La password deve avere almeno 8 caratteri.",true);
+    if(pass!==$("a-pass2").value)return authMsg("loginMsg","Le due password non coincidono.",true);
+  }else if(!pass)return authMsg("loginMsg","Scrivi la password.",true);
+  $("a-submit").disabled=true;
+  try{
+    if(authMode==="signup"){
+      const{data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:redirectTo()}});
+      if(error)throw error;
+      if(!data.session){authMsg("loginMsg","Account creato. Apri l'email che ti abbiamo mandato a "+email+" e tocca il link di conferma (controlla anche lo spam). Poi torna qui e accedi.");setMode("login");$("loginMsg").hidden=false}
+    }else{
+      const{error}=await sb.auth.signInWithPassword({email,password:pass});
+      if(error)throw error;
+    }
+  }catch(err){authMsg("loginMsg",itError(err),true)}
+  $("a-submit").disabled=false;
+}
+async function forgot(){
+  const email=$("a-email").value.trim();
+  if(!okEmail(email))return authMsg("loginMsg","Scrivi prima la tua email qui sopra, poi tocca di nuovo “Password dimenticata?”.",true);
+  const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:redirectTo()});
+  if(error)authMsg("loginMsg",itError(error),true);
+  else authMsg("loginMsg","Ti abbiamo mandato un'email per scegliere una nuova password. Aprila e segui il link.");
+}
+async function submitReset(e){
+  e.preventDefault();
+  const pass=$("r-pass").value;
+  if(pass.length<8)return authMsg("resetMsg","La password deve avere almeno 8 caratteri.",true);
+  $("r-submit").disabled=true;
+  const{error}=await sb.auth.updateUser({password:pass});
+  $("r-submit").disabled=false;
+  if(error)return authMsg("resetMsg",itError(error),true);
+  recovering=false;$("r-pass").value="";toast("Password aggiornata");showAuth();if(session)startSession();
 }
 
 /* ---------- Calcoli ---------- */
@@ -539,10 +675,8 @@ function toggle(x){
   else{const n=new Date();state.log[k][x.key]=pad(n.getHours())+":"+pad(n.getMinutes());if(m&&m.stock!=null)m.stock=Math.max(0,+(m.stock-m.per).toFixed(2));toast("Segnata: "+x.m.name)}
   render();
   const [fid,orario]=x.key.split("|"),taken=state.log[k][x.key];
-  run(taken?sb.from("assunzioni").upsert({farmaco_id:fid,giorno:k,orario,presa_alle:taken},{onConflict:"farmaco_id,giorno,orario"})
-           :sb.from("assunzioni").delete().match({farmaco_id:fid,giorno:k,orario})).then(ok=>{
-    if(ok&&m&&m.stock!=null)run(sb.from("farmaci").update({scorte:m.stock}).eq("id",m.id));
-  });
+  enqueue(taken?{t:"take",fid,giorno:k,orario,at:taken}:{t:"untake",fid,giorno:k,orario});
+  if(m&&m.stock!=null)enqueue({t:"stock",id:m.id,v:m.stock});
 }
 
 /* ---------- Vista Farmaci ---------- */
@@ -618,7 +752,7 @@ function submitForm(e){
   else{med=Object.assign({id:crypto.randomUUID(),example:false},data);state.meds.push(med)}
   const wasEdit=!!editing;
   $("dlg").close();render();
-  run(sb.from("farmaci").upsert(toRow(med))).then(ok=>{if(ok)toast(wasEdit?"Modifiche salvate":"Farmaco aggiunto")});
+  enqueue({t:"med",row:toRow(med)});toast(wasEdit?"Modifiche salvate":"Farmaco aggiunto");
 }
 function deleteMed(){
   if(!editing)return;
@@ -627,21 +761,21 @@ function deleteMed(){
   state.meds=state.meds.filter(z=>z.id!==id);
   for(const d in state.log)for(const k in state.log[d])if(k.startsWith(id+"|"))delete state.log[d][k];
   $("dlg").close();render();
-  run(sb.from("farmaci").delete().eq("id",id)).then(ok=>{if(ok)toast("Farmaco eliminato")});
+  enqueue({t:"delMed",id});toast("Farmaco eliminato");
 }
 
 /* ---------- Generale ---------- */
 let toastT;
 function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,1800)}
 function route(){
-  if(!session)return;
+  if(!session||recovering)return;
   const v=location.hash==="#farmaci"?"farmaci":"oggi";
   $("viewToday").hidden=v!=="oggi";$("viewMeds").hidden=v!=="farmaci";
   $("tab-oggi").setAttribute("aria-current",v==="oggi"?"page":"false");
   $("tab-farmaci").setAttribute("aria-current",v==="farmaci"?"page":"false");
 }
 function render(){
-  if(!session){showAuth();return}
+  if(!session||recovering){showAuth();return}
   state.example=state.meds.some(m=>m.example);
   $("exampleBanner").hidden=!state.example;
   renderToday();renderMeds();route();
@@ -658,16 +792,40 @@ $("nextWeek").addEventListener("click",()=>{selected=addDays(selected,7);renderT
 $("goToday").addEventListener("click",()=>{selected=new Date();selected.setHours(0,0,0,0);renderToday()});
 window.addEventListener("hashchange",route);
 setInterval(()=>{if($("dlg").open)return;renderToday()},60000);
-$("loginForm").addEventListener("submit",sendLink);
-$("logout").addEventListener("click",async()=>{await sb.auth.signOut();});
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&session)loadAll()});
+$("authForm").addEventListener("submit",submitAuth);
+$("resetForm").addEventListener("submit",submitReset);
+$("mode-login").addEventListener("click",()=>setMode("login"));
+$("mode-signup").addEventListener("click",()=>setMode("signup"));
+$("forgot").addEventListener("click",forgot);
+$("a-show").addEventListener("click",()=>{const i=$("a-pass"),show=i.type==="password";i.type=show?"text":"password";$("a-pass2").type=i.type;$("a-show").textContent=show?"Nascondi":"Mostra"});
+$("logout").addEventListener("click",async()=>{
+  if(queue.length&&!confirmLogout){confirmLogout=true;$("logout").textContent="Ci sono modifiche non inviate: tocca di nuovo per uscire";return}
+  try{localStorage.removeItem(ck());localStorage.removeItem(qk())}catch(e){}
+  queue=[];await sb.auth.signOut();
+});
+let confirmLogout=false;
+window.addEventListener("online",()=>flush());
+window.addEventListener("offline",()=>showPending());
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&session&&!recovering){flush();if(!queue.length)loadAll()}});
+
+/* Suggerimento per installare l'app su iPhone/iPad */
+(function(){
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  const standalone=window.navigator.standalone||matchMedia("(display-mode: standalone)").matches;
+  if(ios&&!standalone&&!lsGet("pastiglie.installHint",false))$("installHint").hidden=false;
+  $("installClose").addEventListener("click",()=>{$("installHint").hidden=true;lsSet("pastiglie.installHint",true)});
+})();
+
 sb.auth.onAuthStateChange((event,s)=>{
   const had=!!session;session=s;
-  if(!s){state={meds:[],log:{},example:false};showAuth();return}
+  if(event==="PASSWORD_RECOVERY"){recovering=true;showAuth();return}
+  if(!s){state={meds:[],log:{},example:false};queue=[];confirmLogout=false;$("logout").textContent="Esci";showAuth();return}
   showAuth();
-  if(!had||event==="SIGNED_IN")setTimeout(loadAll,0);
-  if(location.hash.includes("access_token"))history.replaceState(null,"",location.pathname);
+  if(!recovering&&(!had||event==="SIGNED_IN"))setTimeout(startSession,0);
+  if(/access_token|type=|error=/.test(location.hash))history.replaceState(null,"",location.pathname);
 });
+
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 })();
 </script>
 
