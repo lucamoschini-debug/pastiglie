@@ -518,7 +518,10 @@ async function submitAuth(e){
     if(authMode==="signup"){
       const{data,error}=await sb.auth.signUp({email,password:pass,options:{emailRedirectTo:redirectTo()}});
       if(error)throw error;
-      if(!data.session){authMsg("loginMsg","Account creato. Apri l'email che ti abbiamo mandato a "+email+" e tocca il link di conferma (controlla anche lo spam). Poi torna qui e accedi.");setMode("login");$("loginMsg").hidden=false}
+      if(data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){
+        setMode("login");
+        authMsg("loginMsg","Esiste già un account con "+email+". Se non hai ancora una password (ad esempio entravi col link via email), tocca \u201cPassword dimenticata?\u201d qui sotto per crearne una.",true);
+      }else if(!data.session){authMsg("loginMsg","Account creato. Apri l'email che ti abbiamo mandato a "+email+" e tocca il link di conferma (controlla anche lo spam). Poi torna qui e accedi.");setMode("login");$("loginMsg").hidden=false}
     }else{
       const{error}=await sb.auth.signInWithPassword({email,password:pass});
       if(error)throw error;
