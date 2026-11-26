@@ -160,6 +160,15 @@ form.medform{display:flex;flex-direction:column;gap:16px;padding:22px}
 .err{color:var(--bad);font-weight:700;margin:0}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:700;z-index:20}
 .note{color:var(--muted);font-size:.85rem;text-align:center}
+.login{background:var(--surface);border-radius:20px;padding:24px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;max-width:480px;width:100%;margin:12px auto 0}
+.login h2{font-size:1.5rem}
+.login p{margin:0;color:var(--muted)}
+.login form{display:flex;flex-direction:column;gap:10px}
+.login input{background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:12px;width:100%;font-size:1.05rem}
+.login .msg{color:var(--fg);background:var(--accent-soft);border-radius:12px;padding:12px}
+.login .msg.err{background:var(--bad-soft);color:var(--bad)}
+.account{display:flex;gap:6px;align-items:center;font-size:.82rem;color:var(--muted);flex-wrap:wrap}
+.account button{background:none;border:none;color:var(--accent);font-weight:700;padding:2px 4px;font-size:.82rem}
 @media (prefers-reduced-motion:no-preference){.ring circle.prog{transition:stroke-dashoffset .5s ease}.take{transition:background .15s}}
 </style>
 </head>
@@ -170,9 +179,10 @@ form.medform{display:flex;flex-direction:column;gap:16px;padding:22px}
     <div class="brand">
       <span class="eyebrow" id="todayLabel">Oggi</span>
       <h1>Le mie pastiglie</h1>
-      <span class="sync" id="sync"><i></i><span>Salvato su questo dispositivo</span></span>
+      <span class="sync" id="sync"><i></i><span>Non collegato</span></span>
+      <span class="account" id="account" hidden><span id="accEmail"></span>·<button type="button" id="logout">Esci</button></span>
     </div>
-    <nav class="tabs" aria-label="Sezioni">
+    <nav class="tabs" id="tabs" aria-label="Sezioni" hidden>
       <a href="#oggi" id="tab-oggi">Giornata</a>
       <a href="#farmaci" id="tab-farmaci">Farmaci</a>
     </nav>
@@ -183,7 +193,18 @@ form.medform{display:flex;flex-direction:column;gap:16px;padding:22px}
     <button class="btn ghost" id="clearExamples" type="button">Parti da zero</button>
   </div>
 
-  <main id="viewToday">
+  <section class="login" id="viewLogin" hidden>
+    <h2>Accedi</h2>
+    <p>Scrivi la tua email: ti mandiamo un link per entrare, senza password. Ognuno vede solo i propri farmaci.</p>
+    <form id="loginForm" novalidate>
+      <label for="l-email" style="font-weight:700">Email</label>
+      <input type="email" id="l-email" autocomplete="email" inputmode="email" placeholder="nome@esempio.it" required>
+      <button class="btn" type="submit" id="l-send">Inviami il link</button>
+    </form>
+    <p class="msg" id="loginMsg" hidden></p>
+  </section>
+
+  <main id="viewToday" hidden>
     <div style="display:flex;flex-direction:column;gap:20px">
       <section class="summary" aria-live="polite">
         <div class="ring" id="ring"></div>
@@ -292,6 +313,7 @@ form.medform{display:flex;flex-direction:column;gap:16px;padding:22px}
 
 <div class="toast" id="toast" hidden role="status"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 (function(){
 "use strict";
@@ -323,13 +345,13 @@ function exampleState(){
     {id:"ex4",name:"Vitamina D",dose:"10 gocce",food:"",times:["10:00"],days:[0],shape:"half",color:"#f2c94c",stock:null,per:1,start:"",end:"",note:"Solo la domenica",example:true}
   ],log:{[today]:{"ex2|07:30":"07:35"}}};
 }
-let state=null;
+let state={meds:[],log:{},example:false};
 
-/* Persistenza: account (db) quando disponibile, altrimenti questo browser */
-let db=null, docRef=null, saveTimer=null, saving=false, dirty=false;
-function lsRead(){try{const s=localStorage.getItem(LS_KEY);return s?JSON.parse(s):null}catch(e){return null}}
-function lsWrite(s){try{localStorage.setItem(LS_KEY,JSON.stringify(s))}catch(e){}}
-function prune(s){const cut=ymd(addDays(new Date(),-120));for(const k of Object.keys(s.log||{}))if(k<cut)delete s.log[k];return s}
+/* Persistenza: Supabase. Ogni utente vede solo le proprie righe (Row Level Security). */
+const SB_URL="https://bbnbvmphlbpxoyrxczgg.supabase.co";
+const SB_KEY="sb_publishable_zoRY8cv-MyExHijhViLW2w_ah0OtAk_";
+const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let session=null;
 function normalize(s){
   if(!s||!Array.isArray(s.meds))return null;
   s.log=s.log&&typeof s.log==="object"?s.log:{};
@@ -343,43 +365,47 @@ function normalize(s){
     note:String(m.note||""),example:!!m.example}));
   s.example=!!s.example;return s;
 }
-function save(){
-  prune(state);lsWrite(state);dirty=true;
-  if(!docRef)return;
-  clearTimeout(saveTimer);saveTimer=setTimeout(flush,500);
-}
-async function flush(){
-  if(!docRef||saving)return;
-  saving=true;dirty=false;
-  try{await docRef.set(JSON.parse(JSON.stringify({data:state,updated:new Date().toISOString()})));setSync(true)}
-  catch(e){setSync(false,"Non salvato sull'account: resta su questo dispositivo");}
-  saving=false;if(dirty)flush();
-}
-function setSync(on,msg){const s=$("sync");s.classList.toggle("on",on);s.lastElementChild.textContent=msg||(on?"Salvato sul tuo account":"Salvato su questo dispositivo")}
-
-async function connect(){
-  if(!window.claude||!window.claude.use)return;
+function setSync(on,msg){const s=$("sync");s.classList.toggle("on",on);s.lastElementChild.textContent=msg||(on?"Salvato sul tuo account":"Non collegato")}
+function toRow(m){return{id:m.id,nome:m.name,dose:m.dose,cibo:m.food,orari:m.times,giorni:m.days,forma:m.shape,colore:m.color,scorte:m.stock,per_dose:m.per,inizio:m.start||null,fine:m.end||null,note:m.note,aggiornato:new Date().toISOString()}}
+function fromRow(r){return{id:r.id,name:r.nome,dose:r.dose,food:r.cibo,times:r.orari||[],days:r.giorni||[],shape:r.forma,color:r.colore,stock:r.scorte==null?null:Number(r.scorte),per:Number(r.per_dose),start:r.inizio||"",end:r.fine||"",note:r.note}}
+let loading=false;
+async function loadAll(){
+  if(!session||loading)return;loading=true;
+  setSync(false,"Caricamento…");
   try{
-    const [d,u]=await Promise.all([claude.use("db"),claude.use("user")]);
-    if(!d||!u)return;
-    const id=await u.id();if(!id)return;
-    db=d;docRef=db.doc("data/users/"+id+"/pastiglie");
-    const timer=setTimeout(()=>setSync(false,"Account non raggiungibile: salvo qui"),10000);
-    let first=true;
-    docRef.onSnapshot(snap=>{
-      if(!snap.metadata.fromCache)clearTimeout(timer);
-      if(snap.metadata.hasPendingWrites)return;
-      if(snap.exists){
-        const remote=normalize((snap.data()||{}).data);
-        if(remote&&!dirty&&!saving){state=remote;lsWrite(state);render();}
-        if(!snap.metadata.fromCache)setSync(true);
-      }else if(first&&!snap.metadata.fromCache){
-        /* Primo accesso: porta sull'account quello che c'era su questo dispositivo */
-        if(!state.example)flush();setSync(true);
-      }
-      if(!snap.metadata.fromCache)first=false;
-    },()=>{clearTimeout(timer);setSync(false,"Account non raggiungibile: salvo qui")});
-  }catch(e){}
+    const from=ymd(addDays(new Date(),-120));
+    const [f,a]=await Promise.all([
+      sb.from("farmaci").select("*").order("creato"),
+      sb.from("assunzioni").select("farmaco_id,giorno,orario,presa_alle").gte("giorno",from)]);
+    if(f.error||a.error)throw f.error||a.error;
+    const log={};
+    for(const r of a.data)(log[r.giorno]=log[r.giorno]||{})[r.farmaco_id+"|"+r.orario]=r.presa_alle;
+    state=normalize({meds:f.data.map(fromRow),log});
+    setSync(true);
+  }catch(e){setSync(false,"Dati non caricati: controlla la connessione");toast("Non riesco a caricare i dati")}
+  loading=false;render();
+}
+/* Esegue una scrittura; se fallisce avvisa e ricarica i dati veri dal server */
+async function run(q){
+  try{const{error}=await q;if(error)throw error;setSync(true);return true}
+  catch(e){toast("Modifica non salvata. Riprova.");setSync(false,"Ultima modifica non salvata");await loadAll();return false}
+}
+function showAuth(){
+  const inn=!!session;
+  $("viewLogin").hidden=inn;$("tabs").hidden=!inn;$("account").hidden=!inn;
+  if(inn)$("accEmail").textContent=session.user.email||"";
+  else{$("viewToday").hidden=true;$("viewMeds").hidden=true;$("exampleBanner").hidden=true;setSync(false,"Non collegato")}
+}
+async function sendLink(e){
+  e.preventDefault();
+  const email=$("l-email").value.trim(),msg=$("loginMsg");
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.className="msg err";msg.textContent="Controlla l'indirizzo email.";msg.hidden=false;return}
+  $("l-send").disabled=true;
+  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+  $("l-send").disabled=false;
+  if(error){msg.className="msg err";msg.textContent=error.status===429?"Troppe richieste: aspetta qualche minuto e riprova.":"Invio non riuscito: "+error.message;}
+  else{msg.className="msg";msg.textContent="Fatto! Apri l'email che ti abbiamo mandato a "+email+" e tocca il link per entrare. Controlla anche lo spam.";}
+  msg.hidden=false;
 }
 
 /* ---------- Calcoli ---------- */
@@ -511,7 +537,12 @@ function toggle(x){
   const m=state.meds.find(z=>z.id===x.m.id);
   if(state.log[k][x.key]){delete state.log[k][x.key];if(m&&m.stock!=null)m.stock=+(m.stock+m.per).toFixed(2);toast("Dose annullata")}
   else{const n=new Date();state.log[k][x.key]=pad(n.getHours())+":"+pad(n.getMinutes());if(m&&m.stock!=null)m.stock=Math.max(0,+(m.stock-m.per).toFixed(2));toast("Segnata: "+x.m.name)}
-  save();render();
+  render();
+  const [fid,orario]=x.key.split("|"),taken=state.log[k][x.key];
+  run(taken?sb.from("assunzioni").upsert({farmaco_id:fid,giorno:k,orario,presa_alle:taken},{onConflict:"farmaco_id,giorno,orario"})
+           :sb.from("assunzioni").delete().match({farmaco_id:fid,giorno:k,orario})).then(ok=>{
+    if(ok&&m&&m.stock!=null)run(sb.from("farmaci").update({scorte:m.stock}).eq("id",m.id));
+  });
 }
 
 /* ---------- Vista Farmaci ---------- */
@@ -582,47 +613,61 @@ function submitForm(e){
     color:(document.querySelector("input[name=color]:checked")||{}).value||COLORS[0],
     stock:stockV===""?null:Math.max(0,Number(stockV)),per:Math.max(.5,Number($("f-per").value)||1),
     start:$("f-start").value,end:$("f-end").value,note:$("f-note").value.trim()};
-  if(editing){Object.assign(state.meds.find(z=>z.id===editing.id),data,{example:false})}
-  else state.meds.push(Object.assign({id:uid(),example:false},data));
-  $("dlg").close();save();render();toast(editing?"Modifiche salvate":"Farmaco aggiunto");
+  let med;
+  if(editing){med=Object.assign(state.meds.find(z=>z.id===editing.id),data,{example:false})}
+  else{med=Object.assign({id:crypto.randomUUID(),example:false},data);state.meds.push(med)}
+  const wasEdit=!!editing;
+  $("dlg").close();render();
+  run(sb.from("farmaci").upsert(toRow(med))).then(ok=>{if(ok)toast(wasEdit?"Modifiche salvate":"Farmaco aggiunto")});
 }
 function deleteMed(){
   if(!editing)return;
   if(!confirmDel){confirmDel=true;$("delMed").textContent="Conferma eliminazione";return}
-  state.meds=state.meds.filter(z=>z.id!==editing.id);
-  $("dlg").close();save();render();toast("Farmaco eliminato");
+  const id=editing.id;
+  state.meds=state.meds.filter(z=>z.id!==id);
+  for(const d in state.log)for(const k in state.log[d])if(k.startsWith(id+"|"))delete state.log[d][k];
+  $("dlg").close();render();
+  run(sb.from("farmaci").delete().eq("id",id)).then(ok=>{if(ok)toast("Farmaco eliminato")});
 }
 
 /* ---------- Generale ---------- */
 let toastT;
 function toast(t){const e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,1800)}
 function route(){
+  if(!session)return;
   const v=location.hash==="#farmaci"?"farmaci":"oggi";
   $("viewToday").hidden=v!=="oggi";$("viewMeds").hidden=v!=="farmaci";
   $("tab-oggi").setAttribute("aria-current",v==="oggi"?"page":"false");
   $("tab-farmaci").setAttribute("aria-current",v==="farmaci"?"page":"false");
 }
 function render(){
+  if(!session){showAuth();return}
   state.example=state.meds.some(m=>m.example);
   $("exampleBanner").hidden=!state.example;
   renderToday();renderMeds();route();
 }
 
-state=normalize(lsRead())||exampleState();
 buildFormStatic();
 $("medform").addEventListener("submit",submitForm);
 $("addTime").addEventListener("click",()=>{const l=$("f-times").lastElementChild;const last=l?l.querySelector("input").value:"08:00";const h=(Number(last.slice(0,2))+4)%24;$("f-times").append(timeRow(pad(h)+last.slice(2)))});
 $("cancelMed").addEventListener("click",()=>$("dlg").close());
 $("delMed").addEventListener("click",deleteMed);
 $("addMed").addEventListener("click",()=>openForm());
-$("clearExamples").addEventListener("click",()=>{state.meds=state.meds.filter(m=>!m.example);state.log={};save();render();toast("Pronto: aggiungi i tuoi farmaci");location.hash="#farmaci"});
 $("prevWeek").addEventListener("click",()=>{selected=addDays(selected,-7);renderToday()});
 $("nextWeek").addEventListener("click",()=>{selected=addDays(selected,7);renderToday()});
 $("goToday").addEventListener("click",()=>{selected=new Date();selected.setHours(0,0,0,0);renderToday()});
 window.addEventListener("hashchange",route);
 setInterval(()=>{if($("dlg").open)return;renderToday()},60000);
-render();
-connect();
+$("loginForm").addEventListener("submit",sendLink);
+$("logout").addEventListener("click",async()=>{await sb.auth.signOut();});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&session)loadAll()});
+sb.auth.onAuthStateChange((event,s)=>{
+  const had=!!session;session=s;
+  if(!s){state={meds:[],log:{},example:false};showAuth();return}
+  showAuth();
+  if(!had||event==="SIGNED_IN")setTimeout(loadAll,0);
+  if(location.hash.includes("access_token"))history.replaceState(null,"",location.pathname);
+});
 })();
 </script>
 
